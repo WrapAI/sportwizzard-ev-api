@@ -1,7 +1,7 @@
 import express from "express";
 import { config } from "./config.js";
 import { initSchema } from "./store/db.js";
-import { bootstrapReference, bootstrapEvents, bootstrapEdges, bootstrapArbitrage } from "./sync/bootstrap.js";
+import { bootstrapReference, bootstrapEvents, bootstrapOdds, bootstrapEdges, bootstrapArbitrage } from "./sync/bootstrap.js";
 import { startDelta, getDeltaStats } from "./sync/delta.js";
 import { evRouter } from "./api/routes/ev.js";
 import { oddsRouter } from "./api/routes/odds.js";
@@ -39,6 +39,7 @@ async function main(): Promise<void> {
     try {
       await bootstrapReference();
       await bootstrapEvents();
+      await bootstrapOdds();
       await bootstrapEdges();
       await bootstrapArbitrage();
       console.log("[ev-api] bootstrap complete");

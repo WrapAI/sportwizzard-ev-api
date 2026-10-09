@@ -4,7 +4,7 @@ import { config } from "../config.js";
 import type DatabaseType from "better-sqlite3";
 export const db: DatabaseType.Database = new Database(config.dbPath);
 db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+
 
 export function initSchema(): void {
   db.exec(`
@@ -28,7 +28,7 @@ export function initSchema(): void {
 
     CREATE TABLE IF NOT EXISTS odds (
       id TEXT PRIMARY KEY,
-      event_id TEXT NOT NULL REFERENCES events(id),
+      event_id TEXT NOT NULL,
       sportsbook TEXT NOT NULL,
       market TEXT NOT NULL,
       selection TEXT NOT NULL,

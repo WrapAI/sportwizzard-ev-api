@@ -1,6 +1,6 @@
 import { sw } from "../client/sportwizzard.js";
 import type { SwOddsRow, SwEvent, SwPlayer, SwTeam, SwEdge, SwArbitrage } from "../client/types.js";
-import { db, getSyncState, setSyncState } from "../store/db.js";
+import { db, setSyncState } from "../store/db.js";
 
 const upsertEvent = db.prepare(`
   INSERT INTO events (id, league, home_team_id, home_team_name, away_team_id, away_team_name, start_time, status, season_year, has_odds, synced_at)
