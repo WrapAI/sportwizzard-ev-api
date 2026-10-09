@@ -6,6 +6,7 @@ export function americanToDecimal(american: string): number {
 
 export function decimalToAmerican(decimal: number): string {
   if (decimal >= 2.0) return `+${Math.round((decimal - 1) * 100)}`;
+  if (decimal <= 1.0) return "0";
   return `${Math.round(-100 / (decimal - 1))}`;
 }
 
@@ -19,29 +20,88 @@ export function impliedProbToDecimal(prob: number): number {
   return 1 / prob;
 }
 
-export function removeVig(probOver: number, probUnder: number): { over: number; under: number } {
-  const total = probOver + probUnder;
-  if (total === 0) return { over: 0, under: 0 };
-  return { over: probOver / total, under: probUnder / total };
+export type DevigMethod = "shin" | "power" | "multiplicative";
+
+export interface DevigResult {
+  over: number;
+  under: number;
 }
 
-export function noVigFairOdds(decimalOver: number, decimalUnder: number): { over: number; under: number } {
-  const probOver = decimalToImpliedProb(decimalOver);
-  const probUnder = decimalToImpliedProb(decimalUnder);
-  return removeVig(probOver, probUnder);
+export function multiplicativeDevig(overDec: number, underDec: number): DevigResult {
+  const pOver = 1 / overDec;
+  const pUnder = 1 / underDec;
+  const total = pOver + pUnder;
+  if (total === 0) return { over: 0, under: 0 };
+  return { over: pOver / total, under: pUnder / total };
+}
+
+export function powerDevig(overDec: number, underDec: number, power = 0.95): DevigResult {
+  const pOver = Math.pow(1 / overDec, power);
+  const pUnder = Math.pow(1 / underDec, power);
+  const total = pOver + pUnder;
+  if (total === 0) return { over: 0, under: 0 };
+  return { over: pOver / total, under: pUnder / total };
+}
+
+export function shinDevig(overDec: number, underDec: number): DevigResult {
+  const pOver = 1 / overDec;
+  const pUnder = 1 / underDec;
+  const booksum = pOver + pUnder;
+
+  if (Math.abs(booksum - 1.0) < 0.0001) {
+    return { over: pOver, under: pUnder };
+  }
+
+  let z = 0.01;
+  for (let i = 0; i < 50; i++) {
+    const piOver = pOver * (1 - z) / booksum;
+    const piUnder = pUnder * (1 - z) / booksum;
+    const f = piOver + piUnder - 1.0;
+    const df = (pOver * (-1 / booksum)) + (pUnder * (-1 / booksum));
+
+    if (Math.abs(df) < 1e-12) break;
+
+    const zNew = z - f / df;
+    if (Math.abs(zNew - z) < 1e-10) {
+      z = zNew;
+      break;
+    }
+    z = Math.max(0.0, Math.min(0.2, zNew));
+  }
+
+  return {
+    over: pOver * (1 - z) / booksum,
+    under: pUnder * (1 - z) / booksum,
+  };
+}
+
+export function devig(
+  overDec: number,
+  underDec: number,
+  method: DevigMethod = "shin",
+): DevigResult {
+  switch (method) {
+    case "power":
+      return powerDevig(overDec, underDec);
+    case "multiplicative":
+      return multiplicativeDevig(overDec, underDec);
+    case "shin":
+    default:
+      return shinDevig(overDec, underDec);
+  }
 }
 
 export function kellyCriterion(winProb: number, decimalOdds: number, fraction = 1.0): number {
+  if (decimalOdds <= 1) return 0;
   const b = decimalOdds - 1;
-  if (b <= 0) return 0;
   const kelly = (winProb * b - (1 - winProb)) / b;
   return Math.max(0, kelly * fraction);
 }
 
-export function expectedValue(winProb: number, decimalOdds: number): number {
-  return winProb * (decimalOdds - 1) - (1 - winProb);
+export function expectedValuePercent(fairProb: number, betDecimal: number): number {
+  return (fairProb * betDecimal - 1.0) * 100;
 }
 
-export function evPercent(winProb: number, decimalOdds: number): number {
-  return expectedValue(winProb, decimalOdds) * 100;
+export function dfsExpectedValuePercent(fairProb: number, payoutMultiplier: number): number {
+  return (fairProb * payoutMultiplier - 1.0) * 100;
 }

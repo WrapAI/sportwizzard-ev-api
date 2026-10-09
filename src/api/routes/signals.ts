@@ -15,7 +15,7 @@ signalsRouter.get("/edges", (req, res) => {
   params.push(limit);
 
   const rows = db.prepare(sql).all(...params);
-  res.json({ success: true, data: rows, meta: { count: rows.length } });
+  res.json({ success: true, data: rows, meta: { count: rows.length, source: "sportwizzard_precomputed" } });
 });
 
 signalsRouter.get("/arbitrage", (req, res) => {
@@ -30,7 +30,7 @@ signalsRouter.get("/arbitrage", (req, res) => {
   params.push(limit);
 
   const rows = db.prepare(sql).all(...params);
-  res.json({ success: true, data: rows, meta: { count: rows.length } });
+  res.json({ success: true, data: rows, meta: { count: rows.length, source: "sportwizzard_precomputed" } });
 });
 
 signalsRouter.get("/events", (req, res) => {
@@ -44,5 +44,10 @@ signalsRouter.get("/events", (req, res) => {
   sql += " ORDER BY start_time ASC LIMIT 200";
 
   const rows = db.prepare(sql).all(...params);
+  res.json({ success: true, data: rows, meta: { count: rows.length } });
+});
+
+signalsRouter.get("/sportsbooks", (_req, res) => {
+  const rows = db.prepare("SELECT DISTINCT sportsbook, COUNT(*) as market_count FROM odds GROUP BY sportsbook ORDER BY market_count DESC").all();
   res.json({ success: true, data: rows, meta: { count: rows.length } });
 });

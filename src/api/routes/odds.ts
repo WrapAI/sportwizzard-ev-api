@@ -38,3 +38,15 @@ oddsRouter.get("/history/:oddsId", (req, res) => {
   ).all(req.params.oddsId);
   res.json({ success: true, data: rows, meta: { count: rows.length } });
 });
+
+oddsRouter.get("/events/:eventId", (req, res) => {
+  const rows = db.prepare(`
+    SELECT o.*, e.league, e.home_team_name, e.away_team_name
+    FROM odds o
+    JOIN events e ON e.id = o.event_id
+    WHERE o.event_id = ?
+    ORDER BY o.market, o.sportsbook, o.selection
+    LIMIT 2000
+  `).all(req.params.eventId);
+  res.json({ success: true, data: rows, meta: { count: rows.length } });
+});
