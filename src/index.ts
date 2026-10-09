@@ -6,6 +6,18 @@ import { startDelta, getDeltaStats } from "./sync/delta.js";
 import { evRouter } from "./api/routes/ev.js";
 import { oddsRouter } from "./api/routes/odds.js";
 import { signalsRouter } from "./api/routes/signals.js";
+import { scrapersRouter } from "./api/routes/scrapers.js";
+import { registerScraper, listScrapers } from "./scrapers/registry.js";
+import { createAllKambiScrapers } from "./scrapers/kambi/scraper.js";
+import { DraftKingsScraper } from "./scrapers/adapters/draftkings.js";
+import { DkPick6Scraper } from "./scrapers/adapters/dkpick6.js";
+import { FanDuelScraper } from "./scrapers/adapters/fanduel.js";
+import { BetMgmScraper } from "./scrapers/adapters/betmgm.js";
+import { PrizePicksScraper } from "./scrapers/adapters/prizepicks.js";
+import { PolymarketScraper } from "./scrapers/adapters/polymarket.js";
+import { KalshiScraper } from "./scrapers/adapters/kalshi.js";
+import { BovadaScraper } from "./scrapers/adapters/bovada.js";
+import { SleeperScraper } from "./scrapers/adapters/sleeper.js";
 import { SHARP_BOOKS, DFS_BOOKS } from "./ev/books.js";
 
 const app = express();
@@ -26,6 +38,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/v1", evRouter);
 app.use("/api/v1/odds", oddsRouter);
 app.use("/api/v1/signals", signalsRouter);
+app.use("/api/v1/scrapers", scrapersRouter);
 
 async function main(): Promise<void> {
   console.log(`[ev-api] starting on ${config.host}:${config.port}`);
@@ -34,7 +47,7 @@ async function main(): Promise<void> {
   console.log(`[ev-api] sharp books: ${SHARP_BOOKS.join(", ")}`);
   console.log(`[ev-api] dfs books: ${DFS_BOOKS.join(", ")}`);
 
-  if (config.snapshotOnStart) {
+  if (config.snapshotOnStart && config.apiKey) {
     console.log("[ev-api] bootstrapping...");
     try {
       await bootstrapReference();
@@ -49,9 +62,30 @@ async function main(): Promise<void> {
         error instanceof Error ? error.message : error,
       );
     }
+  } else if (config.snapshotOnStart && !config.apiKey) {
+    console.log("[ev-api] SPORTWIZZARD_API_KEY not set — skipping SportWizzard bootstrap, scrapers only");
   }
 
-  startDelta(config.syncIntervalMs);
+  console.log("[ev-api] registering scrapers...");
+  registerScraper(new DraftKingsScraper());
+  registerScraper(new DkPick6Scraper());
+  registerScraper(new FanDuelScraper());
+  registerScraper(new BetMgmScraper());
+  registerScraper(new PrizePicksScraper());
+  registerScraper(new PolymarketScraper());
+  registerScraper(new KalshiScraper());
+  registerScraper(new BovadaScraper());
+  registerScraper(new SleeperScraper());
+  for (const kambi of createAllKambiScrapers()) {
+    registerScraper(kambi);
+  }
+  console.log(`[ev-api] ${listScrapers().length} scrapers registered`);
+
+  if (config.apiKey) {
+    startDelta(config.syncIntervalMs);
+  } else {
+    console.log("[ev-api] SPORTWIZZARD_API_KEY not set — delta poller disabled");
+  }
 
   app.listen(config.port, config.host, () => {
     console.log(`[ev-api] listening on http://${config.host}:${config.port}`);

@@ -7,7 +7,7 @@ function required(name: string, fallback?: string): string {
 }
 
 export const config = {
-  apiKey: required("SPORTWIZZARD_API_KEY", ""),
+  apiKey: process.env.SPORTWIZZARD_API_KEY ?? "",
   baseUrl: "https://api.sportwizzard.com/api/v1",
   syncIntervalMs: parseInt(process.env.SYNC_INTERVAL_MS ?? "3000", 10),
   snapshotOnStart: process.env.SNAPSHOT_ON_START === "true",

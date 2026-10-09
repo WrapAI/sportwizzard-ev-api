@@ -25,9 +25,16 @@ Built on the [SportWizzard API](https://sportwizzard.com/developers) — 342k+ l
 │  ├── Kelly Criterion: full and quarter sizing           │
 │  └── Arbitrage: best-over/best-under cross-book         │
 ├─────────────────────────────────────────────────────────┤
+│ Direct Scrapers (18 books)                              │
+│  ├── Public: DK, DK Pick6, FanDuel, BetMGM,            │
+│  │   PrizePicks, Polymarket, Kalshi, Bovada, Sleeper  │
+│  └── Kambi (9 books, one adapter): BetRivers,          │
+│      BetPARX, BallyBet, WannaParlay, Chalkboard,       │
+│      ProphetX, TheScore, Betway, Fanatics              │
+├─────────────────────────────────────────────────────────┤
 │ REST API (Express)                                      │
 │  └── /api/v1/opportunities, /dfs-edges, /arbitrage,     │
-│      /odds, /signals, /summary, /best                   │
+│      /odds, /signals, /scrapers, /summary, /best       │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -206,3 +213,55 @@ src/
 ## License
 
 MIT
+
+## Direct Bookmaker Scrapers
+
+Bypass the SportWizzard aggregator for fresher odds. 18 scrapers across 4 categories:
+
+### Sportsbooks
+| Book | Status | Method |
+|------|--------|--------|
+| DraftKings | Public | REST API (league categories) |
+| FanDuel | Public | REST API (content-managed-page) |
+| BetMGM | Public | REST API (clientconfig → fixtures) |
+| Bovada | Public | REST API (coupon events) |
+| BetRivers | Kambi | Shared Kambi API |
+| BetPARX | Kambi | Shared Kambi API |
+| BallyBet | Kambi | Shared Kambi API |
+| WannaParlay | Kambi | Shared Kambi API |
+| Chalkboard | Kambi | Shared Kambi API |
+| ProphetX | Kambi | Shared Kambi API |
+| TheScore | Kambi | Shared Kambi API |
+| Betway | Kambi | Shared Kambi API |
+| Fanatics | Kambi | Shared Kambi API |
+
+### DFS / Pick'em
+| Book | Status | Method |
+|------|--------|--------|
+| PrizePicks | Public | REST API (projections, 7.8MB) |
+| DK Pick6 | Public | REST API (league categories) |
+| Sleeper | Public | REST API (player pools) |
+
+### Prediction Markets
+| Book | Status | Method |
+|------|--------|--------|
+| Polymarket | Public | Gamma API |
+| Kalshi | Public | Trade API v2 |
+
+### Auth Required (not yet implemented)
+Pinnacle (token), Caesars (session), HotStreak (JWT), Underdog (Cloudflare)
+
+### Scraper API Endpoints
+```
+GET  /api/v1/scrapers              # List all registered scrapers
+GET  /api/v1/scrapers/health       # Health check all endpoints
+GET  /api/v1/scrapers/stats        # Run statistics
+POST /api/v1/scrapers/run/:bookId  # Trigger single scraper
+POST /api/v1/scrapers/run-all      # Run all scrapers
+```
+
+### Data Flow
+1. Scraper fetches from book's direct API (with browser headers)
+2. Normalizes to `NormalizedOdds` (uniform schema)
+3. Upserts into SQLite `odds` + `price_history` tables
+4. EV engine picks up new odds on next computation cycle

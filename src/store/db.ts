@@ -5,7 +5,6 @@ import type DatabaseType from "better-sqlite3";
 export const db: DatabaseType.Database = new Database(config.dbPath);
 db.pragma("journal_mode = WAL");
 
-
 export function initSchema(): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS events (
@@ -151,6 +150,10 @@ export function getSyncState(key: string): string | null {
     | undefined;
   return row?.value ?? null;
 }
+
+
+// Initialize schema immediately so module-level prepare() calls in other files work
+initSchema();
 
 export function setSyncState(key: string, value: string): void {
   db.prepare(
